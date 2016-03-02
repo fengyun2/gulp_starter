@@ -71,14 +71,21 @@ gulp.task('css', function() {
 	.pipe(rev())					// 文件名加MD5后缀
 	.pipe(gulp.dest('dist/css'))	// 输出文件本地
 	.pipe(rev.manifest())			// 生成一个rev-manifest.json
-	.pipe(gulp.dest('dist/rev'));	// 将 rev-manifest.json 保存到 dist/rev 目录内
+	.pipe(gulp.dest('dist/rev/css'));	// 将 rev-manifest.json 保存到 dist/rev 目录内
 });
 
 // 替换md5文件名
 gulp.task('rev', function() {
-	return gulp.src(['dist/rev/*.json','dist/html/**/index.html'])	// 读取 rev-manifest.json 文件以及需要进行css名替换的文件
-	.pipe(revCollector())										// 执行文件内css名的替换
-	.pipe(gulp.dest('dist/'));								// 替换后的文件输出的目录
+  var options = {
+    replaceReved: true,
+    dirReplacements: {
+        'css': 'dist/css',
+        'js': 'dist/js',
+    }
+  };
+	return gulp.src(['dist/rev/**/*.json','dist/old_html/**/index.html']) // 读取 rev-manifest.json 文件以及需要进行css名替换的文件
+	.pipe(revCollector())								// 替换后的文件输出的目录
+  .pipe(gulp.dest('dist/html/'));
 });
 
 // 合并，压缩js文件
@@ -94,7 +101,9 @@ gulp.task('scripts', function() {
       .pipe(concat('all.min.js'))	// 压缩后的js文件名
       .pipe(rev())					// 文件名加MD5后缀
       .pipe(sourcemaps.write())
-      .pipe(gulp.dest('dist/js'));
+      .pipe(gulp.dest('dist/js'))
+      .pipe(rev.manifest())     // 生成一个rev-manifest.json
+      .pipe(gulp.dest('dist/rev/js')); // 将 rev-manifest.json 保存到 dist/rev 目录内
   });
 
 // 压缩图片
@@ -121,12 +130,13 @@ gulp.task('html', function () {
         return gulp.src(paths.html)
         // .pipe(plumber())
         .pipe(htmlmin(options))
-        .pipe(gulp.dest('dist/html'));
+        .pipe(gulp.dest('dist/old_html'));
     });
 
 // 当文件发生变化后会自动执行任务
 gulp.task('watch', function() {
 	gulp.watch(paths.js, ['scripts']);
+  gulp.watch(paths.js, ['css']);
 	gulp.watch(paths.images, ['images']);
 });
 
@@ -143,6 +153,6 @@ gulp.task('watch', function() {
 // 	'rev'
 // 	]);
 
-gulp.task('default',gulpSequence('clean','lint',['scripts','sass','images','html'],'css','rev'));
+gulp.task('default',gulpSequence('watch','lint','clean',['scripts','sass','images','html'],'css','rev'));
 
 
